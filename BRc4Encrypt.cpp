@@ -187,77 +187,71 @@ unsigned char g_DeBox4[] =
 0xCA, 0xC1, 0xDC, 0xD7, 0xE6, 0xED, 0xF0, 0xFB, 0x92, 0x99, 0x84, 0x8F, 0xBE, 0xB5, 0xA8, 0xA3
 };
 
-
-BRc4Encrypt::BRc4Encrypt()
+VOID BRc4Encrypt::EncryptData(PBYTE pbKey, PBYTE pbData, DWORD* pdwLength)
 {
+	int dataIndex = 0;
+	memmove(g_Key, pbKey, 16);
 	// 16字节xorkey + 生成160字节xorkey = 176字节xorkey
 	// 每组xorkey为16字节一共有11组xorkey
 	InitXorKeyBox();
-}
-
-void BRc4Encrypt::EncryptData()
-{
-	printf("明文数据：%s\n", g_data);
-	int dataIndex = 0;
+	*pdwLength = 16 * (*pdwLength / 16 + 1);
 	// 每次加密16字节的明文数据
-	for (int j = 0; j < sizeof(g_data); j += 16) {
+	for (int j = 0; j < *pdwLength; j += 16) {
 		int xorKeyIndex = 16;
 		// 使用一组16字节xorkey和明文数据进行异或
-		MyXor(g_Key, g_data + dataIndex);
+		MyXor(g_Key, pbData + dataIndex);
 		for (int i = 0; i < 9; i++) {
 			// 以数据为box1数组下标替换16字节数据
-			replaceBoxData(g_data + dataIndex);
+			replaceBoxData(pbData + dataIndex);
 			// 将16字节数据乱序
-			ByteOutOfOrder(g_data + dataIndex);
+			ByteOutOfOrder(pbData + dataIndex);
 			// 使用box3和box4异或加密
-			boxXorData(g_data + dataIndex);
-			MyXor(g_Key + xorKeyIndex, g_data + dataIndex);
+			boxXorData(pbData + dataIndex);
+			MyXor(g_Key + xorKeyIndex, pbData + dataIndex);
 			// 下16字节的xorkey
 			xorKeyIndex += 16;
 		}
 		// 以数据为box1数组下标替换16字节数据
-		replaceBoxData(g_data + dataIndex);
+		replaceBoxData(pbData + dataIndex);
 		// 将16字节数据乱序
-		ByteOutOfOrder(g_data + dataIndex);
+		ByteOutOfOrder(pbData + dataIndex);
 		// 使用最后一组16字节的xorkey进行异或加密
-		MyXor(g_Key + xorKeyIndex, g_data + dataIndex);
+		MyXor(g_Key + xorKeyIndex, pbData + dataIndex);
 		// 加密接下来16字节的数据
 		dataIndex += 16;
 	}
-	printf("加密数据：");
-	for (int k = 0; k < sizeof(g_data); k++)
-	{
-		printf("0x%02X ", g_data[k]);
-	}
-	printf("\n");
+	g_replaceIndex = 1;
 }
 
-void BRc4Encrypt::DecryptData()
+VOID BRc4Encrypt::DecryptData(PBYTE pbKey, PBYTE pbData, DWORD pdwLength)
 {
 	int dataIndex = 0;
-	for (int j = 0; j < sizeof(g_data); j += 16) {
+	memmove(g_Key, pbKey, 16);
+	// init Xor Key
+	InitXorKeyBox();
+	for (int j = 0; j < pdwLength; j += 16) {
 		// 解密要从最后一组xorkey开始
 		int KeyIndex = 0xA0;
 		// 解密反过来首先使用最后16字节xorkeybox异或
-		MyXor(g_Key + KeyIndex, g_data + dataIndex);
+		MyXor(g_Key + KeyIndex, pbData + dataIndex);
 		// 将16字节数据乱序
-		DeByteOutOfOrder(g_data + dataIndex);
+		DeByteOutOfOrder(pbData + dataIndex);
 		// 以数据为box数组下标替换16字节数据
-		DereplaceBoxData(g_data + dataIndex);
+		DereplaceBoxData(pbData + dataIndex);
 		for (int i = 0; i < 9; i++) {
 			KeyIndex -= 0x10;
-			MyXor(g_Key + KeyIndex, g_data + dataIndex);
-			DeboxXorData(g_data + dataIndex);
+			MyXor(g_Key + KeyIndex, pbData + dataIndex);
+			DeboxXorData(pbData + dataIndex);
 			// 将16字节数据乱序
-			DeByteOutOfOrder(g_data + dataIndex);
+			DeByteOutOfOrder(pbData + dataIndex);
 			// 以数据为box数组下标替换16字节数据
-			DereplaceBoxData(g_data + dataIndex);
+			DereplaceBoxData(pbData + dataIndex);
 		}
-		MyXor(g_Key, g_data + dataIndex);
+		MyXor(g_Key, pbData + dataIndex);
 		// 解密下16字节数据
 		dataIndex += 16;
 	}
-	printf("解密数据：%s", g_data);
+	g_replaceIndex = 1;
 }
 
 void BRc4Encrypt::InitXorKeyBox()
@@ -300,16 +294,14 @@ void BRc4Encrypt::replaceFourByteKey(unsigned char* fourByteKey)
 
 void BRc4Encrypt::MyXor(unsigned char* key, unsigned char* data)
 {
-	for (int i = 0; i < 16; i++)
-	{
+	for (int i = 0; i < 16; i++) {
 		data[i] = data[i] ^ key[i];
 	}
 }
 
 void BRc4Encrypt::replaceBoxData(unsigned char* data)
 {
-	for (size_t i = 0; i < 16; i++)
-	{
+	for (size_t i = 0; i < 16; i++) {
 		data[i] = g_Box1[data[i]];
 	}
 }
@@ -446,8 +438,7 @@ void BRc4Encrypt::DeByteOutOfOrder(unsigned char* data)
 
 void BRc4Encrypt::DereplaceBoxData(unsigned char* data)
 {
-	for (size_t i = 0; i < 16; i++)
-	{
+	for (size_t i = 0; i < 16; i++) {
 		data[i] = g_DereplaceFourKeyBox[data[i]];
 	}
 }

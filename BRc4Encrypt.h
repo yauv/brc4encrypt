@@ -5,18 +5,13 @@
 class BRc4Encrypt
 {
 public:
-	// InitXorKeyBox
-	BRc4Encrypt();
-public:
 	// 加密函数
-	void EncryptData();
+	VOID EncryptData(PBYTE pbKey, PBYTE pbData, DWORD* pdwLength);
 	// 解密函数
-	void DecryptData();
+	VOID DecryptData(PBYTE pbKey, PBYTE pbData, DWORD pdwLength);
 private:
 	// 加密密钥
-	unsigned char g_Key[176] = "2Q73HI7Q0OD5BRN7";
-	// 要加密的数据
-	unsigned char g_data[237] = "{\"cds\":{\"auth\":\"VJM2U57S0U9RA840\"},\"mtdt\":{\"h_name\":\"DESKTOP-DJ1MB67\",\"wver\":\"x64/10.0\",\"arch\":\"x64\",\"bld\":\"19081\",\"p_name\":\"QwA6AFwAVQBzAGUAcgBzAFwAagBvAGgAbgBcAEQAZQBzAGsAdABvAHAAXAByAG8AcgAuAGUAeABlAA==\",\"uid\":\"john\",\"pid\":\"6948\"}}\r\n";
+	unsigned char g_Key[176] = { 0 };
 	// 用于临时存储替换密钥
 	unsigned char g_TempKey[4] = { 0 };
 	// box替换下标
